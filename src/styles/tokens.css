@@ -1,0 +1,30 @@
+/* SÉRA BY SIMRAN — Locked Design Tokens */
+:root {
+  /* Locked Master Palette */
+  --sera-ivory: #F8F4EC;
+  --sera-espresso: #3B2A22;
+  --sera-champagne: #D9C3A6;
+  --sera-taupe: #A89D8E;
+  --sera-beige: #E8DED0;
+
+  /* Semantic Aliases */
+  --bg: var(--sera-ivory);
+  --surface: var(--sera-beige);
+  --surface-inverted: var(--sera-espresso);
+  --text: var(--sera-espresso);
+  --text-inverted: var(--sera-ivory);
+  --text-secondary: color-mix(in srgb, var(--sera-espresso) 70%, transparent);
+  --text-muted: color-mix(in srgb, var(--sera-espresso) 50%, transparent);
+  --line: color-mix(in srgb, var(--sera-taupe) 45%, transparent);
+  --line-strong: var(--sera-taupe);
+  --accent: var(--sera-champagne);
+
+  /* Button Tokens */
+  --btn-primary-bg: var(--sera-espresso);
+  --btn-primary-fg: var(--sera-ivory);
+  --btn-secondary-bg: var(--sera-beige);
+  --btn-secondary-fg: var(--sera-espresso);
+
+  /* Functional Token */
+  --sera-functional-error: #8C3B2E;
+}
