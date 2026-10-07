@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { AuthProvider } from '@/lib/auth/AuthContext';
+
 export default function RootLayout({
   children,
 }: {
@@ -18,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${playfair.variable} ${montserrat.variable}`}>
       <body className="min-h-screen bg-sera-ivory text-sera-espresso font-sans antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

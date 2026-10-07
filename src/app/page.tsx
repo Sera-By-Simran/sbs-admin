@@ -1,8 +1,19 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { SetupIncomplete } from '@/components/common/SetupIncomplete';
+import { getAdminBrowserSupabase } from '@/lib/auth/supabase';
+import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
 
-export default function AdminPage() {
+export default function AdminLoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -12,6 +23,36 @@ export default function AdminPage() {
 
   if (missingKeys.length > 0) {
     return <SetupIncomplete missingKeys={missingKeys} />;
+  }
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const supabase = getAdminBrowserSupabase();
+      if (!supabase) {
+        throw new Error('Supabase client not initialized');
+      }
+
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (data?.session) {
+        router.push('/admin');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Authentication failed. Please verify your staff credentials.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -37,40 +78,67 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <form className="space-y-4">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm flex items-start space-x-2 text-xs text-red-700">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs uppercase tracking-wider text-sera-espresso/80 font-semibold mb-1">
                 Email Address
               </label>
-              <input
-                type="email"
-                placeholder="staff@serabysimran.in"
-                className="w-full px-3 py-2 text-sm bg-sera-ivory/60 border border-sera-taupe/40 rounded-sm focus:outline-none focus:border-sera-espresso font-sans"
-              />
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="owner@serabysimran.in"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-sera-ivory/60 border border-sera-taupe/40 rounded-sm focus:outline-none focus:border-sera-espresso font-sans"
+                />
+                <Mail className="w-4 h-4 text-sera-taupe absolute left-3 top-2.5" />
+              </div>
             </div>
 
             <div>
               <label className="block text-xs uppercase tracking-wider text-sera-espresso/80 font-semibold mb-1">
                 Password
               </label>
-              <input
-                type="password"
-                placeholder="••••••••••••"
-                className="w-full px-3 py-2 text-sm bg-sera-ivory/60 border border-sera-taupe/40 rounded-sm focus:outline-none focus:border-sera-espresso font-sans"
-              />
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-sera-ivory/60 border border-sera-taupe/40 rounded-sm focus:outline-none focus:border-sera-espresso font-sans"
+                />
+                <Lock className="w-4 h-4 text-sera-taupe absolute left-3 top-2.5" />
+              </div>
             </div>
 
             <button
-              type="button"
-              className="w-full bg-sera-espresso text-sera-ivory py-2.5 rounded-sm text-xs uppercase tracking-widest font-semibold hover:opacity-90 transition-opacity mt-2"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-sera-espresso text-sera-ivory py-2.5 rounded-sm text-xs uppercase tracking-widest font-semibold hover:opacity-90 transition-opacity mt-2 flex items-center justify-center space-x-2 disabled:opacity-50"
             >
-              Sign In to Dashboard
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Verifying Credentials...</span>
+                </>
+              ) : (
+                <span>Sign In to Dashboard</span>
+              )}
             </button>
           </form>
 
           <div className="mt-6 pt-4 border-t border-sera-taupe/20 text-center">
             <p className="text-[11px] text-sera-taupe">
-              Multi-Factor Authentication (TOTP) enforced for all administrative roles.
+              Default bootstrap login: <code className="text-sera-espresso font-mono">owner@serabysimran.in</code>
             </p>
           </div>
         </div>
