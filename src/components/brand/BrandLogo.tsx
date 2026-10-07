@@ -17,24 +17,15 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   switch (variant) {
     case 'header':
       return (
-        <div className={`flex items-center space-x-2.5 ${className}`}>
-          <div className="w-7 h-7 relative flex-shrink-0">
-            <Image
-              src="/brand/monogram.png"
-              alt="SÉRA"
-              fill
-              priority={priority}
-              className="object-contain"
-            />
-          </div>
-          <div className="flex flex-col leading-none">
-            <span className="font-serif text-xl tracking-[0.2em] text-sera-espresso font-normal">
-              SÉRA
-            </span>
-            <span className="text-[8px] uppercase tracking-[0.3em] text-sera-taupe font-semibold mt-0.5">
-              BY SIMRAN
-            </span>
-          </div>
+        <div className={`relative flex items-center ${className}`}>
+          <Image
+            src="/brand/logo-header.png"
+            alt="SÉRA BY SIMRAN"
+            width={240}
+            height={80}
+            priority={priority}
+            className="h-10 w-auto object-contain"
+          />
         </div>
       );
 

@@ -138,7 +138,7 @@ export default function AdminLoginPage() {
 
           <div className="mt-6 pt-4 border-t border-sera-taupe/20 text-center">
             <p className="text-[11px] text-sera-taupe">
-              Default bootstrap login: <code className="text-sera-espresso font-mono">owner@serabysimran.in</code>
+              Authorized access only. All authentication attempts are monitored.
             </p>
           </div>
         </div>

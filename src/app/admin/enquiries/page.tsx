@@ -13,8 +13,8 @@ import {
   XCircle,
   Truck,
   ArrowRight,
-  User,
   ShoppingBag,
+  Sparkles,
 } from 'lucide-react';
 
 export default function AdminEnquiriesPage() {
@@ -24,6 +24,8 @@ export default function AdminEnquiriesPage() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [activeEnquiry, setActiveEnquiry] = useState<any | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [actionReason, setActionReason] = useState('');
+  const [showReasonPrompt, setShowReasonPrompt] = useState<'unavailable' | 'cancelled' | null>(null);
 
   async function loadEnquiries() {
     setLoading(true);
@@ -47,19 +49,41 @@ export default function AdminEnquiriesPage() {
     loadEnquiries();
   }, [selectedStatus]);
 
-  async function handleStatusTransition(toStatus: string) {
+  async function handleStatusTransition(toStatus: string, reasonNotes?: string) {
     if (!activeEnquiry) return;
     setUpdating(true);
     try {
       const res = await api.post(`/api/admin/v1/enquiries/${activeEnquiry.id}/transition`, {
         to_status: toStatus,
+        notes: reasonNotes || actionReason || undefined,
       });
       if (res.success) {
         setActiveEnquiry(null);
+        setShowReasonPrompt(null);
+        setActionReason('');
         await loadEnquiries();
       }
     } catch (err: any) {
       alert(`Transition failed: ${err?.message || 'Invalid state change'}`);
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  async function handleConvertToOrder() {
+    if (!activeEnquiry) return;
+    if (!confirm(`Convert enquiry ${activeEnquiry.reference} to an official order?`)) return;
+
+    setUpdating(true);
+    try {
+      const res = await api.post(`/api/admin/v1/enquiries/${activeEnquiry.id}/convert`, {});
+      if (res.success) {
+        alert('Enquiry successfully converted to order!');
+        setActiveEnquiry(null);
+        await loadEnquiries();
+      }
+    } catch (err: any) {
+      alert(`Conversion failed: ${err?.message}`);
     } finally {
       setUpdating(false);
     }
@@ -108,6 +132,13 @@ export default function AdminEnquiriesPage() {
           <span className="inline-flex items-center space-x-1 text-[10px] uppercase font-semibold text-rose-800 bg-rose-100/80 px-2 py-0.5 rounded-sm">
             <XCircle className="w-2.5 h-2.5" />
             <span>Unavailable</span>
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="inline-flex items-center space-x-1 text-[10px] uppercase font-semibold text-gray-800 bg-gray-200 px-2 py-0.5 rounded-sm">
+            <XCircle className="w-2.5 h-2.5" />
+            <span>Cancelled</span>
           </span>
         );
       default:
@@ -162,6 +193,7 @@ export default function AdminEnquiriesPage() {
           { id: 'availability_confirmed', label: 'Confirmed Stock' },
           { id: 'customer_confirmed', label: 'Customer Confirmed' },
           { id: 'unavailable', label: 'Unavailable' },
+          { id: 'cancelled', label: 'Cancelled' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -237,11 +269,15 @@ export default function AdminEnquiriesPage() {
                   <td className="py-3 px-4">{getStatusChip(enq.status)}</td>
                   <td className="py-3 px-4 text-right">
                     <button
-                      onClick={() => setActiveEnquiry(enq)}
-                      className="inline-flex items-center space-x-1 text-[11px] px-2.5 py-1 border border-sera-taupe/40 bg-white rounded-sm hover:bg-sera-beige/30 transition-colors"
+                      onClick={() => {
+                        setActiveEnquiry(enq);
+                        setShowReasonPrompt(null);
+                        setActionReason('');
+                      }}
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-sera-espresso hover:text-amber-900 border border-sera-taupe/40 bg-white px-2.5 py-1 rounded-sm"
                     >
                       <span>Review</span>
-                      <ArrowRight className="w-3 h-3 text-sera-taupe" />
+                      <ArrowRight className="w-3 h-3" />
                     </button>
                   </td>
                 </tr>
@@ -265,7 +301,10 @@ export default function AdminEnquiriesPage() {
                 </h3>
               </div>
               <button
-                onClick={() => setActiveEnquiry(null)}
+                onClick={() => {
+                  setActiveEnquiry(null);
+                  setShowReasonPrompt(null);
+                }}
                 className="text-sera-taupe hover:text-sera-espresso text-sm font-semibold"
               >
                 ✕
@@ -314,48 +353,102 @@ export default function AdminEnquiriesPage() {
               </div>
             </div>
 
-            {/* Workflow Actions */}
-            <div className="pt-3 border-t border-sera-taupe/20 space-y-2">
-              <span className="text-[10px] uppercase tracking-wider text-sera-taupe font-semibold block">
-                Workflow Actions (State Machine)
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                {activeEnquiry.status === 'new' && (
+            {/* Reason prompt box for Unavailable or Cancelled */}
+            {showReasonPrompt && (
+              <div className="p-3 bg-white border border-rose-300 rounded-sm space-y-2">
+                <span className="text-[10px] uppercase font-semibold text-rose-900 block">
+                  Provide reason for marking {showReasonPrompt}:
+                </span>
+                <input
+                  type="text"
+                  placeholder="e.g. Sourcing unavailable / Client declined / Duplicate"
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                  className="w-full text-xs border border-sera-taupe/30 px-2 py-1.5 rounded-sm focus:outline-none"
+                />
+                <div className="flex justify-end space-x-2 pt-1">
                   <button
-                    onClick={() => handleStatusTransition('supplier_check')}
-                    disabled={updating}
-                    className="p-2 bg-amber-700 text-white rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-amber-800 disabled:opacity-50"
+                    onClick={() => setShowReasonPrompt(null)}
+                    className="text-xs text-sera-taupe px-2 py-1"
                   >
-                    Initiate Supplier Check
+                    Back
                   </button>
-                )}
-                {activeEnquiry.status === 'supplier_check' && (
                   <button
-                    onClick={() => handleStatusTransition('availability_confirmed')}
+                    onClick={() => handleStatusTransition(showReasonPrompt)}
                     disabled={updating}
-                    className="p-2 bg-emerald-700 text-white rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-emerald-800 disabled:opacity-50"
+                    className="text-xs bg-rose-700 text-white font-semibold uppercase px-3 py-1 rounded-sm hover:bg-rose-800 disabled:opacity-50"
                   >
-                    Confirm Stock Available
+                    Confirm {showReasonPrompt}
                   </button>
-                )}
-                {activeEnquiry.status === 'availability_confirmed' && (
-                  <button
-                    onClick={() => handleStatusTransition('customer_confirmed')}
-                    disabled={updating}
-                    className="p-2 bg-purple-700 text-white rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-purple-800 disabled:opacity-50"
-                  >
-                    Mark Customer Confirmed
-                  </button>
-                )}
-                <button
-                  onClick={() => handleStatusTransition('cancelled')}
-                  disabled={updating}
-                  className="p-2 border border-rose-300 text-rose-700 rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-rose-50 disabled:opacity-50"
-                >
-                  Cancel Enquiry
-                </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Workflow Actions */}
+            {!showReasonPrompt && (
+              <div className="pt-3 border-t border-sera-taupe/20 space-y-2">
+                <span className="text-[10px] uppercase tracking-wider text-sera-taupe font-semibold block">
+                  Workflow Actions (State Machine)
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {activeEnquiry.status === 'new' && (
+                    <button
+                      onClick={() => handleStatusTransition('supplier_check')}
+                      disabled={updating}
+                      className="p-2 bg-amber-700 text-white rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-amber-800 disabled:opacity-50"
+                    >
+                      Initiate Supplier Check
+                    </button>
+                  )}
+                  {activeEnquiry.status === 'supplier_check' && (
+                    <button
+                      onClick={() => handleStatusTransition('availability_confirmed')}
+                      disabled={updating}
+                      className="p-2 bg-emerald-700 text-white rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-emerald-800 disabled:opacity-50"
+                    >
+                      Confirm Stock Available
+                    </button>
+                  )}
+                  {activeEnquiry.status === 'availability_confirmed' && (
+                    <button
+                      onClick={() => handleStatusTransition('customer_confirmed')}
+                      disabled={updating}
+                      className="p-2 bg-purple-700 text-white rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-purple-800 disabled:opacity-50"
+                    >
+                      Mark Customer Confirmed
+                    </button>
+                  )}
+                  {activeEnquiry.status === 'customer_confirmed' && !activeEnquiry.converted_order_id && (
+                    <button
+                      onClick={handleConvertToOrder}
+                      disabled={updating}
+                      className="p-2 bg-emerald-800 text-white rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-emerald-900 disabled:opacity-50 flex items-center justify-center space-x-1"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-sera-champagne" />
+                      <span>Convert to Order</span>
+                    </button>
+                  )}
+                  {activeEnquiry.status !== 'unavailable' && activeEnquiry.status !== 'cancelled' && (
+                    <button
+                      onClick={() => setShowReasonPrompt('unavailable')}
+                      disabled={updating}
+                      className="p-2 border border-rose-400 text-rose-800 rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      Mark Unavailable
+                    </button>
+                  )}
+                  {activeEnquiry.status !== 'cancelled' && (
+                    <button
+                      onClick={() => setShowReasonPrompt('cancelled')}
+                      disabled={updating}
+                      className="p-2 border border-gray-400 text-gray-700 rounded-sm text-xs uppercase tracking-wider font-semibold hover:bg-gray-100 disabled:opacity-50"
+                    >
+                      Cancel Enquiry
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
