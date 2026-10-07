@@ -26,3 +26,9 @@ Thumbs.db
 
 # Operational scripts (Private)
 scripts/
+
+# Media assets (NEVER committed to git)
+*.jpg
+*.jpeg
+*.webp
+*.avif
